@@ -3,7 +3,7 @@ server:
 
 anthropic:
   api:
-    key: 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
+    key: teste
   model: claude-3-5-sonnet-20240620
 
 mongodb:
