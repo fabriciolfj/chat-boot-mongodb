@@ -3,7 +3,7 @@ server:
 
 anthropic:
   api:
-    key: teste
+    key: ${KEY}
   model: claude-3-5-sonnet-20240620
 
 mongodb:
