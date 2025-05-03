@@ -43,7 +43,7 @@ class DocumentLoaderService(
             val articles: List<ArticleInfo> = objectMapper.readValue(articlesJson)
 
             for (article in articles) {
-                val document = Document(
+                val document = Document.document(
                     article.content,
                     Metadata(
                         mapOf(

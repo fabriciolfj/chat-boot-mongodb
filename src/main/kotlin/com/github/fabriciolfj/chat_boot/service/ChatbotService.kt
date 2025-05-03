@@ -54,7 +54,7 @@ class ChatbotService(
                 UserMessage(formattedMessage)
             )
 
-            val aiMessage = chatModel.generate(messages) as AiMessage
+            val aiMessage = chatModel.chat(messages) as AiMessage
             val response = aiMessage.text()
 
             logger.info { "Generated response for the user" }
@@ -78,7 +78,7 @@ class ChatbotService(
             UserMessage(userMessage)
         )
 
-        val aiMessage = chatModel.generate(messages) as AiMessage
+        val aiMessage = chatModel.chat(messages) as AiMessage
         val response = aiMessage.text()
 
         return ChatResponse(

@@ -57,6 +57,7 @@ class ModelConfig {
     fun embeddingStore(mongoClient: MongoClient): EmbeddingStore<TextSegment> {
         return MongoDbEmbeddingStore.builder()
             .fromClient(mongoClient)
+            .indexName("test")
             .databaseName(mongodbDatabase)
             .collectionName(mongodbCollection)
             .build()

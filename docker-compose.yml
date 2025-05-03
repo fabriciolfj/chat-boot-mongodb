@@ -1,21 +1,19 @@
 version: '3.8'
 
 services:
-  # MongoDB
   mongodb:
-    image: mongo:latest
-    container_name: mongodb
+    image: mongodb/mongodb-atlas-local:latest
+    container_name: mongodb-atlas-local
     restart: always
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: chatbot
+      MONGODB_INITDB_ROOT_USERNAME: admin
+      MONGODB_INITDB_ROOT_PASSWORD: password
+      MONGODB_INITDB_DATABASE: chatbot
     volumes:
       - mongodb_data:/data/db
-      - ./key/mongo-keyfile:/opt/keyfile
-    command: mongod --auth --bind_ip_all
+      - ./mongodb-atlas-data/key:/mongodb/key:ro
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh mongodb://admin:password@localhost:27017/admin --quiet
       interval: 10s
@@ -23,52 +21,6 @@ services:
       retries: 5
       start_period: 40s
 
-  # MongoDB setup for replica set (necessário para Vector Search)
-  mongodb-setup:
-    image: mongo:latest
-    container_name: mongodb-setup
-    restart: on-failure
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    volumes:
-      - ./mongo-keyfile:/opt/keyfile
-    entrypoint: >
-      bash -c '
-        echo "Esperando MongoDB iniciar..."
-        sleep 10
-        mongosh mongodb://admin:password@mongodb:27017/admin --eval "
-          rs.initiate({
-            _id: \"rs0\",
-            members: [{ _id: 0, host: \"mongodb:27017\" }]
-          });
-          db.createCollection(\"chatbot.embeddings\");
-          db.createCollection(\"chatbot.metadata\");
-      
-          // Criar índice de vetor para pesquisa (adicionado em versão futura)
-          try {
-            db.adminCommand({
-              createIndexes: \"chatbot.embeddings\",
-              indexes: [{
-                name: \"vector_index\",
-                key: { vector: \"hnsw\" },
-                params: {
-                  dimensions: 384,
-                  metric: \"cosine\"
-                }
-              }]
-            });
-            print(\"Índice vetorial criado com sucesso!\");
-          } catch (e) {
-            print(\"Não foi possível criar o índice vetorial agora: \" + e);
-            print(\"O índice poderá ser criado manualmente ou pela aplicação mais tarde.\");
-          }
-      
-          print(\"MongoDB configurado com sucesso!\");
-        "
-      '
-
-  # MongoDB Express (Interface web para gerenciamento)
   mongo-express:
     image: mongo-express:latest
     restart: always
