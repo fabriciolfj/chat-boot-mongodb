@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # MongoDB
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: chatbot
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-keyfile:/opt/keyfile:ro
+    command: mongod --auth --keyFile /opt/keyfile --replSet rs0 --bind_ip_all
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://admin:password@localhost:27017/admin --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # MongoDB setup for replica set (necessário para Vector Search)
+  mongodb-setup:
+    image: mongo:latest
+    container_name: mongodb-setup
+    restart: on-failure
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./mongo-keyfile:/opt/keyfile
+    entrypoint: >
+      bash -c '
+        echo "Esperando MongoDB iniciar..."
+        sleep 10
+        mongosh mongodb://admin:password@mongodb:27017/admin --eval "
+          rs.initiate({
+            _id: \"rs0\",
+            members: [{ _id: 0, host: \"mongodb:27017\" }]
+          });
+          db.createCollection(\"chatbot.embeddings\");
+          db.createCollection(\"chatbot.metadata\");
+      
+          // Criar índice de vetor para pesquisa (adicionado em versão futura)
+          try {
+            db.adminCommand({
+              createIndexes: \"chatbot.embeddings\",
+              indexes: [{
+                name: \"vector_index\",
+                key: { vector: \"hnsw\" },
+                params: {
+                  dimensions: 384,
+                  metric: \"cosine\"
+                }
+              }]
+            });
+            print(\"Índice vetorial criado com sucesso!\");
+          } catch (e) {
+            print(\"Não foi possível criar o índice vetorial agora: \" + e);
+            print(\"O índice poderá ser criado manualmente ou pela aplicação mais tarde.\");
+          }
+      
+          print(\"MongoDB configurado com sucesso!\");
+        "
+      '
+
+  # MongoDB Express (Interface web para gerenciamento)
+  mongo-express:
+    image: mongo-express:latest
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_PORT: 27017
+    depends_on:
+      - mongodb
+
+volumes:
+  mongodb_data:
