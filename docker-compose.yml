@@ -14,8 +14,8 @@ services:
       MONGO_INITDB_DATABASE: chatbot
     volumes:
       - mongodb_data:/data/db
-      - ./mongo-keyfile:/opt/keyfile:ro
-    command: mongod --auth --keyFile /opt/keyfile --replSet rs0 --bind_ip_all
+      - ./key/mongo-keyfile:/opt/keyfile
+    command: mongod --auth --bind_ip_all
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh mongodb://admin:password@localhost:27017/admin --quiet
       interval: 10s
