@@ -3,12 +3,12 @@ server:
 
 anthropic:
   api:
-    key: ${KEY}
+    key:
   model: claude-3-5-sonnet-20240620
 
 mongodb:
   connection:
-    string: mongodb://admin:password@localhost:27017/admin
+    string: mongodb://admin:password@localhost:27017/?authSource=admin
   database: chatbot
   collection: embeddings
 
